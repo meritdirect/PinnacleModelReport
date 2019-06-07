@@ -1,0 +1,96 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="My" GeneratedClassName="MySettings" UseMySettingsClassName="true">
+  <Profiles />
+  <Settings>
+    <Setting Name="conDatamart" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">Data Source=10.91.37.174;Initial Catalog=mrtMeritBaseDatamartX;Trusted_Connection=True</Value>
+    </Setting>
+    <Setting Name="conThomagata" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">Data Source=10.91.37.180;Initial Catalog=PinnacleModelRescore;User ID=jbarash;Password=Northern#Lights!</Value>
+    </Setting>
+    <Setting Name="ScriptDIR" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">\\10.91.37.180\e$\Pinnacle\Model Rescore Process\PINNACLE MODELS\SQL_Code\ScriptProcessing\</Value>
+    </Setting>
+    <Setting Name="sqlCode" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">Set nocount on;
+declare @bd varchar(max), @Models int, @MissingSQLModels int, @MissingViewModels int
+  select @Models = count(*), @MissingSQLModels = sum(case when SQL_ScriptOutputFlag = 0 then 1 else 0 end), @MissingViewModels = sum(case when ScoringViewReadyFlag = 0 then 1 else 0 end) from [mrtMeritBaseDatamartX].[PINNACLE].[ModelMeta] where ModelStatus = 'AA';
+
+  SET @bd = cast( (
+	SELECT td = ModelNo + '&lt;/td&gt;&lt;td&gt;' + ModelName +'&lt;/td&gt;&lt;td&gt;' + DAPP_ModelText + '&lt;/td&gt;&lt;td class="num"&gt;'+ Ranks + '&lt;/td&gt;' + case when Err1 = 0 then '&lt;td&gt;' else '&lt;td class="err"&gt;' end + SQL_ScriptOutput + '&lt;/td&gt;'+ case when Err2 = 0 then '&lt;td&gt;' else '&lt;td class="err"&gt;' end + ScoringViewReady
+	FROM (
+     SELECT Top 100 PERCENT  ModelNo
+            ,ModelName
+			,ModelStatus
+			,DAPP_ModelText
+            ,Ranks = cast(ModelRanksCount as varchar(3))
+			, SQL_ScriptOutput = case SQL_ScriptOutputFlag when 1 then 'Yes' else 'No' end
+			, ScoringViewReady = case ScoringViewReadyFlag when 1 then 'Yes' else 'No' end
+			, Err1 = case when SQL_ScriptOutputFlag = 0  then 1 else 0 end
+			, Err2 = case when ScoringViewReadyFlag = 0  then 1 else 0 end
+    FROM    [mrtMeritBaseDatamartX].[PINNACLE].[ModelMeta] 
+	WHERE ModelStatus = 'AA'
+	
+      ) AS d order by ModelNo
+FOR XML PATH( 'tr' ), type ) as varchar(max) );
+
+
+
+SET @bd = '&lt;table&gt;'
+              + '&lt;tr&gt;&lt;th&gt;ModelNumber&lt;/th&gt;&lt;th&gt;ModelName&lt;/th&gt;&lt;th&gt;DAPP_ModelText&lt;/th&gt;&lt;th&gt;Ranks&lt;/th&gt;&lt;th&gt;SQLScriptOutput&lt;/th&gt;&lt;th&gt;SQLScoringViewReady&lt;/th&gt;&lt;/tr&gt;'
+              + replace( replace( @bd, '&amp;lt;', '&lt;' ), '&amp;gt;', '&gt;' )
+              + '&lt;/table&gt;&lt;br/&gt;';
+
+SET @bd = '&lt;table&gt;
+&lt;tr class="bold"&gt;&lt;td &gt;Models to run: &lt;/td&gt;&lt;td&gt;' + cast(@Models as varchar(3)) + '&lt;td&gt;&lt;/tr&gt;
+&lt;tr class="bold"&gt;&lt;td&gt;Missing Scripts: &lt;/td&gt;&lt;td&gt;' + cast(@MissingSQLModels as varchar(3)) + '&lt;/td&gt;&lt;/tr&gt;
+&lt;tr class="bold"&gt;&lt;td&gt;Missing Views: &lt;/td&gt;&lt;td&gt;' + cast(@MissingViewModels as varchar(3)) + '&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+&lt;br/&gt;' + @bd;
+
+
+SET @bd =  '&lt;style&gt;
+table {font-family: arial; border: solid black 1px;  border-spacing: 2; border-collapse: separate;}
+th {text-align: left; font-weight: bold; border-bottom: solid black 1px}
+td {padding-left: 4px; padding-right: 4px; }
+td.num {text-align: right;}
+td.err {text-align: right; font-weight: bold; background-color: #FFFF00}
+tr.bold {text-align: left; font-weight: bold;}
+td.note {font-size: smaller}
+td.final {border-top: solid black 2px; font-weight: bold}
+td.finalamount {text-align: right;border-top: solid black 2px; font-weight: bold}
+&lt;/style&gt;' + @bd;
+
+select @bd as body;
+</Value>
+    </Setting>
+    <Setting Name="sqlCode2" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">Set nocount on;
+declare @bd varchar(max), @Models int, @MissingSQLModels int, @MissingViewModels int
+  select @Models = count(*), @MissingSQLModels = sum(case when SQL_ScriptOutputFlag = 0 then 1 else 0 end), @MissingViewModels = sum(case when ScoringViewReadyFlag = 0 then 1 else 0 end) from [mrtMeritBaseDatamartX].[PINNACLE].[ModelMeta] where ModelStatus = 'AA';
+
+SET @bd = '&lt;table&gt;
+&lt;tr class="bold"&gt;&lt;td &gt;Models to run: &lt;/td&gt;&lt;td&gt;' + cast(@Models as varchar(3)) + '&lt;td&gt;&lt;/tr&gt;
+&lt;tr class="bold"&gt;&lt;td&gt;Missing Scripts: &lt;/td&gt;&lt;td&gt;' + cast(@MissingSQLModels as varchar(3)) + '&lt;/td&gt;&lt;/tr&gt;
+&lt;tr class="bold"&gt;&lt;td&gt;Missing Views: &lt;/td&gt;&lt;td&gt;' + cast(@MissingViewModels as varchar(3)) + '&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+&lt;br/&gt;';
+
+
+SET @bd =  '&lt;style&gt;
+table {font-family: arial; border: solid black 1px;  border-spacing: 2; border-collapse: separate;}
+th {text-align: left; font-weight: bold; border-bottom: solid black 1px}
+td {padding-left: 4px; padding-right: 4px; }
+td.num {text-align: right;}
+td.err {text-align: right; font-weight: bold; background-color: #FFFF00}
+tr.bold {text-align: left; font-weight: bold;}
+td.note {font-size: smaller}
+td.final {border-top: solid black 2px; font-weight: bold}
+td.finalamount {text-align: right;border-top: solid black 2px; font-weight: bold}
+&lt;/style&gt;' + @bd;
+
+select @bd as body;
+</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>
