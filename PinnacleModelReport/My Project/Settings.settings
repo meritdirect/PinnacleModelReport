@@ -92,5 +92,8 @@ td.finalamount {text-align: right;border-top: solid black 2px; font-weight: bold
 select @bd as body;
 </Value>
     </Setting>
+    <Setting Name="maxThreads" Type="System.Int32" Scope="Application">
+      <Value Profile="(Default)">5</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

@@ -149,6 +149,15 @@ Namespace My
                 Return CType(Me("sqlCode2"),String)
             End Get
         End Property
+        
+        <Global.System.Configuration.ApplicationScopedSettingAttribute(),  _
+         Global.System.Diagnostics.DebuggerNonUserCodeAttribute(),  _
+         Global.System.Configuration.DefaultSettingValueAttribute("5")>  _
+        Public ReadOnly Property maxThreads() As Integer
+            Get
+                Return CType(Me("maxThreads"),Integer)
+            End Get
+        End Property
     End Class
 End Namespace
 
