@@ -67,7 +67,7 @@ Namespace My
         <Global.System.Configuration.ApplicationScopedSettingAttribute(),  _
          Global.System.Diagnostics.DebuggerNonUserCodeAttribute(),  _
          Global.System.Configuration.DefaultSettingValueAttribute("Data Source=10.91.37.180;Initial Catalog=PinnacleModelRescore;User ID=jbarash;Pas"& _ 
-            "sword=Northern#Lights!")>  _
+            "sword=Northern#Lights!;MultipleActiveResultSets=true")>  _
         Public ReadOnly Property conThomagata() As String
             Get
                 Return CType(Me("conThomagata"),String)

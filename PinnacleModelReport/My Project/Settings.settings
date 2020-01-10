@@ -6,7 +6,7 @@
       <Value Profile="(Default)">Data Source=10.91.37.174;Initial Catalog=mrtMeritBaseDatamartX;Trusted_Connection=True</Value>
     </Setting>
     <Setting Name="conThomagata" Type="System.String" Scope="Application">
-      <Value Profile="(Default)">Data Source=10.91.37.180;Initial Catalog=PinnacleModelRescore;User ID=jbarash;Password=Northern#Lights!</Value>
+      <Value Profile="(Default)">Data Source=10.91.37.180;Initial Catalog=PinnacleModelRescore;User ID=jbarash;Password=Northern#Lights!;MultipleActiveResultSets=true</Value>
     </Setting>
     <Setting Name="ScriptDIR" Type="System.String" Scope="Application">
       <Value Profile="(Default)">\\10.91.37.180\e$\Pinnacle\Model Rescore Process\PINNACLE MODELS\SQL_Code\ScriptProcessing\</Value>

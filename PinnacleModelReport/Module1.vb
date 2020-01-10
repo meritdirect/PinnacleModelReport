@@ -10,36 +10,39 @@ Module Module1
         Dim strFileName As String = "", strViewName As String = "", strModelTable As String = "", bFound As Boolean = False
         Dim strMessage As New StringBuilder, strErrorTable As New StringBuilder
         Dim sConnection As String = My.Settings.conDatamart
-        Try
-            Dim app As Microsoft.SqlServer.Dts.Runtime.Application
-            Dim pkg As Microsoft.SqlServer.Dts.Runtime.Package
-            app = New Microsoft.SqlServer.Dts.Runtime.Application()
 
-            'app.PackagePassword = "password"
 
-            pkg = app.LoadPackage("E:\Pinnacle\Model Rescore Process\SSIS - Rewrite\ModelManager\ModelManager\Package.dtsx", Nothing)
+        PopulateCounts()
+        If My.Application.CommandLineArgs.Count = 0 Then
+            Try
+                PopulateScoringTable()
+                'replaced with direct query using linked server
+                'Dim app As Microsoft.SqlServer.Dts.Runtime.Application
+                'Dim pkg As Microsoft.SqlServer.Dts.Runtime.Package
+                'app = New Microsoft.SqlServer.Dts.Runtime.Application()
+                'app.PackagePassword = "password"
+                'pkg = app.LoadPackage("E:\Pinnacle\Model Rescore Process\SSIS - Rewrite\ModelManager\ModelManager\UpdateModelManager.dtsx", Nothing)
+                'pkg.PackagePassword = "password"
 
-            'pkg.PackagePassword = "password"
+                'pkg.Execute()
+            Catch ex As Exception
+                Console.WriteLine(ex.ToString)
+            End Try
 
-            pkg.Execute()
-        Catch ex As Exception
-            Console.WriteLine(ex.ToString)
-        End Try
-        Using ConThomagata As New SqlConnection(My.Settings.conThomagata)
-            ConThomagata.Open()
+            Using ConThomagata As New SqlConnection(My.Settings.conThomagata)
+                ConThomagata.Open()
 
-            Using Con As New SqlConnection(sConnection)
-                Con.Open()
+
                 Using cmd As New SqlCommand()
-                    cmd.CommandType = CommandType.Text
+                    cmd.CommandType = CommandType.StoredProcedure
                     cmd.CommandTimeout = 0
-                    cmd.Connection = Con
-                    cmd.CommandText = My.Settings.sqlCode2
+                    cmd.Connection = ConThomagata
+                    cmd.CommandText = "p_ModelTable"
                     strModelTable = cmd.ExecuteScalar().ToString
-                End Using ' command
+                    End Using ' command
 
-                strMessage.Append("<table>")
-                Using Com As New SqlCommand("SELECT ModelNo, ScoringView from PINNACLE.ModelMeta where ModelStatus='AA' order by ModelNo", Con)
+                    strMessage.Append("<table>")
+                Using Com As New SqlCommand("SELECT ModelNo, ScoringView from [MRTDATAMART1].[mrtMeritBaseDatamartX].PINNACLE.ModelMeta where ModelStatus='AA' order by ModelNo", ConThomagata)
                     Using RDR = Com.ExecuteReader()
                         If RDR.HasRows Then
                             Do While RDR.Read
@@ -49,6 +52,8 @@ Module Module1
                                     strViewName = RDR("ModelNo").ToString & "_SCORING_VIEW"
                                 Else
                                     strViewName = RDR("ScoringView").ToString.Replace("VIEW3", "VIEW") ' exception for 02650001, 02650002
+                                    strViewName = strViewName.Replace("00280001H", "00280001") ' exception for misnamed scoring views
+                                    strViewName = strViewName.Replace("00280002H", "00280002")
                                 End If
                                 If Not ViewExists(strViewName, ConThomagata) Then
                                     strMessage.Append("<tr><td>" & strViewName & " Missing" & "</td></tr>")
@@ -67,22 +72,23 @@ Module Module1
 
                 End Using ' Com
 
-            End Using 'conDatamart
-            strMessage.Append("</table><br/><br/>")
-            'Using cmdT As New SqlCommand
-            '    With cmdT
-            '        .CommandType = CommandType.StoredProcedure
-            '        .CommandText = "p_GetLatestViewCounts"
-            '        .Connection = ConThomagata
-            '        .CommandTimeout = 0
-            '        strMessage.Append(.ExecuteScalar().ToString)
-            '    End With
-            'End Using
-            'strMessage.Append("<br/><br/>")
-            strMessage.Append(strModelTable)
-            PopulateCounts()
-            SendSQLEmail(strMessage.ToString, "PinnacleModelReport", ConThomagata)
-        End Using 'ConThomagata
+
+                strMessage.Append("</table><br/><br/>")
+                'Using cmdT As New SqlCommand
+                '    With cmdT
+                '        .CommandType = CommandType.StoredProcedure
+                '        .CommandText = "p_GetLatestViewCounts"
+                '        .Connection = ConThomagata
+                '        .CommandTimeout = 0
+                '        strMessage.Append(.ExecuteScalar().ToString)
+                '    End With
+                'End Using
+                'strMessage.Append("<br/><br/>")
+                strMessage.Append(strModelTable)
+
+                SendSQLEmail(strMessage.ToString, "PinnacleModelReport", ConThomagata)
+            End Using 'ConThomagata
+        End If 'no command line arguments
     End Sub
     Public Sub SendSQLEmail(strBody As String, strSubject As String, Con As SqlConnection)
         Dim sConnection As String = My.Settings.conThomagata
@@ -138,19 +144,17 @@ Module Module1
                                     Insert into ModelReportCounts
                                     select 
 	                                    v.name as ScoringView,
-                                         P.MODEL_NAME as Model,
-	                                    isnull(P.TYPE1,'') as ModelDescription,
+                                         M.ModellingFieldName as Model,
+	                                    isnull(M.ModelName,'') as ModelDescription,
 	                                     DAPP_ModelText,
 	                                    0 as [Count],
-	                                     P.SCORE_METHOD as Score,
+	                                     M.ModelRanksCount as Score,
 	                                    Case M.SQL_ScriptOutputFlag when 1 then 'YES' ELSE 'NO' END as SQLScoringViewReady,
 	                                    Case M.ScoringViewReadyFlag when 1 then 'YES' ELSE 'NO' END as SQLScriptOutput   
-                                    from  [MRTDATAMART1].[mrtMeritBaseDatamartX].[PINNACLE].[ModelMeta] M
-                                    join zPinnacle_Score_Process_Table P on P.Model_Name = M.ModellingFieldName 
-                                    LEFT OUTER JOIN sys.views v on Left(v.Name,8) = P.MODEL_NUMBER  
-                                    where   P.APPLY_MODEL = 'Y' 
-                                    AND M.ModelStatus='AA'
-                                    order by P.MODEL_NUMBER"
+                                    from  [MRTDATAMART1].[mrtMeritBaseDatamartX].[PINNACLE].[ModelMeta] M                                    
+                                    LEFT OUTER JOIN sys.views v on v.Name = M.ModelNo + '_Scoring_View'
+                                    where M.ModelStatus='AA'
+                                    order by M.ModelNo"
                 cmd.ExecuteNonQuery()
             End Using
             Using Com As New SqlCommand("SELECT * from ModelReportCounts", Con)
@@ -171,15 +175,30 @@ Module Module1
                 End Using 'RDR
             End Using 'Com
             Con.Close()
-            End Using 'Con
+        End Using 'Con
 
-
-
-            Do While treadCount(dic) > 0
+        Do While treadCount(dic) > 0 'wait for threads to finish
             Threading.Thread.Sleep(1000)
         Loop
 
 
+    End Sub
+    Public Sub PopulateScoringTable()
+
+
+        Dim sConnection As String = My.Settings.conThomagata
+        Using Con As New SqlConnection(sConnection)
+            Con.Open()
+            Using cmd As New SqlCommand()
+                cmd.CommandType = CommandType.Text
+                cmd.Connection = Con
+                cmd.CommandText = "
+                Truncate table zPinnacle_Score_Process_Table;
+    Insert into zPinnacle_Score_Process_Table (MODEL_NUMBER, MODEL_NAME, TYPE1, SQL_SOURCE_CODE, SCORE_METHOD, FORMAT_SEQ, APPLY_MODEL, Status)
+    Select ModelNo as MODEL_NUMBER, ModellingFieldName as MODEL_NAME,  ModelName as TYPE1, ModellingFieldName + '.sql' as SQL_SOURCE_CODE, ModelRanksCount as SCORE_METHOD, ModelID as FORMAT_SEQ, CASE when ModelStatus = 'AA' THEN 'Y' ELSE 'N' END, 0 as Status FROM [MRTDATAMART1].[mrtMeritBaseDatamartX].[PINNACLE].[ModelMeta]"
+                cmd.ExecuteNonQuery()
+            End Using
+        End Using
     End Sub
 
     Private Function treadCount(dic As List(Of Thread)) As Integer
